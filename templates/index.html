@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Bingo Searching</title>
+    <link rel="stylesheet" href="{{url_for('static',filename='dist/css/output.css')}}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/waypoints/4.0.1/noframework.waypoints.min.js"></script>
+    
+</head>
+
+<body class="flex items-center justify-center min-h-screen bg-emerald-300">
+    
+    <div class="max-w-screen-md mx-auto mb-52" >
+        
+        <form method="get" action="{{ url_for('search') }}" class="flex flex-col items-center">
+            <div class="flex">
+                <h1 id="typed-text" class="text-5xl mb-3.5 ml-2"> <span id="orange-text" class="text-blue-100"></span></h1>
+            </div>
+            
+
+            <div class="flex">
+                <h3 class="text-l mb-3.5 ml-2 text-black">Enjoy Your Searching With Bingo Searching</h3>
+            </div>
+
+            <div class="flex items-center mt-1">
+                <!-- Input teks untuk query pencarian -->
+                <input type="search" id="default-search" name="search_query"
+                class="block w-full px-4 md:px-10 py-1 text-l text-gray-900 border border-gray-400 bg-white rounded-md transition duration-300 ease-in-out hover:border-blue-500 hover:scale-105"
+                placeholder="Search Or Type URL" aria-label="Pencarian"
+                required />
+            
+            
+                <!-- Tombol untuk melakukan pencarian -->
+                <button type="submit" class="flex items-center px-8 py-1 bg-cyan-500 text-white rounded-md ml-2 transition duration-300 ease-in-out transform hover:scale-105">
+                    <svg class="w-6 h-6 fill-current mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 0 0 1.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 0 0-7.27 7.26c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 0 0 5.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                    </svg>
+                    Fetch!
+                </button>
+            </div>
+            
+            
+            
+            <div class="flex items-center mt-4 space-x-2">
+                <!-- Dropdown untuk memilih mesin pencari -->
+                {% if search_engines %}
+                <div class="relative w-1/2">
+                    <select name="search_engine" id="search_engine"
+                        class="block appearance-none w-full py-1 px-4 text-xl text-gray-900 border border-gray-300 bg-white focus:border-orange-500 rounded-md hover:border-blue-500 transition duration-300 ease-in-out hover:scale-105">
+                        {% for engine in search_engines %}
+                            {% if engine == search_engine %}
+                                <option value="{{ engine }}" selected>{{ engine }}</option>
+                            {% else %}
+                                <option value="{{ engine }}">{{ engine }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                        <!-- SVG atau ikon untuk menunjukkan dropdown -->
+                        <svg class="w-5 h-5 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd"
+                                d="M10 12a1 1 0 0 1-.707-.293l-4-4a1 1 0 1 1 1.414-1.414L10 10.586l3.293-3.293a1 1 0 1 1 1.414 1.414l-4 4A1 1 0 0 1 10 12z" />
+                        </svg>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Input teks untuk jumlah top dokumen -->
+                {% if current_k %}
+                <input type="number" id="top_documents" name="top_documents" min="1" value="{% if current_k %}{{ current_k }}{% else %}60{% endif %}"
+                    class="w-1/2 py-1 px-4 text-xl text-gray-900 border border-gray-300 bg-white  focus:border-orange-500 rounded-md  hover:border-blue-500 transition duration-300 ease-in-out hover:scale-105"
+                    placeholder="Jumlah top dokumen" aria-label="Jumlah Dokumen" required />
+                {% else %}
+                <input type="number" id="top_documents" name="top_documents" min="1" value="{% if current_k %}{{ current_k }}{% else %}60{% endif %}"
+                    class="w-1/2 py-1 px-4 text-xl text-gray-900 border border-gray-300 bg-white  focus:border-orange-500 rounded-md  hover:border-blue-500 transition duration-300 ease-in-out hover:scale-105"
+                    placeholder="Jumlah top dokumen" aria-label="Jumlah Dokumen" required />
+                {% endif %}
+            </div>
+            
+            
+            
+            
+            </div>
+        </form>
+    </div>
+    <script>
+        let textArray = ["Bingo.", "Search."]; // Array of strings
+        let textIndex = 0; // Index for the array of strings
+        let charIndex = 0; // Index for the character in the string
+        let typingDelay = 2000; // Base delay in ms for typing
+        let sentencePause = 1000; // Pause at the end of a sentence
+        let orangeText = document.getElementById('orange-text');
+        let cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('cursor');
+        cursorSpan.textContent = '|';
+        orangeText.appendChild(cursorSpan);
+
+        function typeWriter() {
+            if (charIndex < textArray[textIndex].length) {
+                if (!orangeText.innerHTML.endsWith('|')) {
+                    orangeText.innerHTML += textArray[textIndex].charAt(charIndex);
+                }
+                charIndex++;
+                setTimeout(typeWriter, Math.random() * (typingDelay - 50) + 50); // Random delay for natural typing
+            } else {
+                setTimeout(erase, sentencePause);
+            }
+        }
+
+        function erase() {
+            if (charIndex > 0) {
+                orangeText.innerHTML = textArray[textIndex].substring(0, charIndex - 1) + '|';
+                charIndex--;
+                setTimeout(erase, Math.random() * (typingDelay - 50) + 50);
+            } else {
+                textIndex++;
+                if (textIndex >= textArray.length) textIndex = 0;
+                setTimeout(typeWriter, typingDelay);
+            }
+        }
+
+        function blinkCursor() {
+            if (orangeText.innerHTML.endsWith('|')) {
+                orangeText.innerHTML = orangeText.innerHTML.slice(0, -1);
+            } else {
+                orangeText.innerHTML += '|';
+            }
+            setTimeout(blinkCursor, 1000); // Cursor blink speed
+        }
+
+        blinkCursor(); // Start the cursor effect
+        typeWriter(); // Start the typewriter effect
+        
+
+    </script>
+</body>
+
+</html>
